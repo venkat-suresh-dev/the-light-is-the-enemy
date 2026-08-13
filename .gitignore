@@ -1,0 +1,17 @@
+@"
+.DS_Store
+Thumbs.db
+
+node_modules/
+dist/
+build/
+
+.env
+.env.*
+!.env.example
+
+*.log
+
+.vscode/
+.idea/
+"@ | Set-Content .gitignore
