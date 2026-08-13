@@ -1,0 +1,323 @@
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#hud-objective {
+  position: absolute;
+  top: calc(var(--safe-top) + 16px);
+  left: calc(var(--safe-left) + 16px);
+}
+
+#hud-flashlight {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 16px);
+  left: calc(var(--safe-left) + 16px);
+}
+
+.hud-label {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--ui-dim);
+  margin-bottom: 4px;
+}
+
+#hud-objective-text {
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  color: var(--ui);
+  font-weight: 400;
+}
+
+.hud-hint {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ui-dim);
+  margin-top: 4px;
+  max-width: 260px;
+  line-height: 1.4;
+}
+
+.hud-badge {
+  display: inline-block;
+  font-size: 0.55rem;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  margin-bottom: 2px;
+}
+
+.hud-badge.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#hud-battery-bar {
+  width: 120px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#hud-battery-fill {
+  height: 100%;
+  width: 80%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+#hud-battery-fill.low {
+  background: var(--danger);
+}
+
+#pause-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 6, 7, 0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+.pause-text {
+  font-size: 1.2rem;
+  letter-spacing: 0.4em;
+  color: var(--ui-dim);
+  margin-bottom: 0.5rem;
+}
+
+#tutorial-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+#tutorial-text {
+  font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+  letter-spacing: 0.2em;
+  color: var(--ui-dim);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+#tutorial-text.visible {
+  opacity: 1;
+}
+
+.room-transition {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.room-transition.visible {
+  opacity: 1;
+}
+
+.room-transition-title {
+  font-size: clamp(1rem, 3vw, 1.4rem);
+  letter-spacing: 0.35em;
+  color: var(--ui);
+  font-weight: 300;
+  margin-bottom: 0.5rem;
+}
+
+.room-transition-sub {
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  color: var(--ui-dim);
+  text-transform: uppercase;
+}
+
+.hint-overlay {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 80px);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  padding: 12px 20px;
+  background: rgba(7, 8, 9, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  max-width: 320px;
+}
+
+.hint-overlay.visible {
+  opacity: 1;
+}
+
+.hint-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.hint-sub {
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  color: var(--ui-dim);
+  line-height: 1.4;
+}
+
+.help-panel {
+  max-width: 360px;
+  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(12, 14, 17, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+
+.help-heading {
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  color: var(--ui-dim);
+  margin-bottom: 0.75rem;
+}
+
+.help-text {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--ui-dim);
+  line-height: 1.6;
+  margin-bottom: 0.25rem;
+}
+
+.help-emphasis {
+  color: var(--accent);
+  margin-top: 0.5rem;
+}
+
+#touch-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+}
+
+#touch-controls:not(.hidden) {
+  pointer-events: auto;
+}
+
+.touch-zone {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#touch-move-zone {
+  bottom: calc(var(--safe-bottom) + 20px);
+  left: calc(var(--safe-left) + 20px);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.touch-stick {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(218, 218, 218, 0.15);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+#touch-aim-zone {
+  bottom: calc(var(--safe-bottom) + 20px);
+  right: calc(var(--safe-right) + 20px);
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.touch-btn {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 1.4rem;
+  color: var(--ui);
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease, background 0.2s ease;
+}
+
+#touch-flashlight {
+  bottom: calc(var(--safe-bottom) + 90px);
+  right: calc(var(--safe-right) + 30px);
+}
+
+#touch-sprint {
+  bottom: calc(var(--safe-bottom) + 90px);
+  right: calc(var(--safe-right) + 100px);
+  font-size: 0.9rem;
+}
+
+.touch-btn.active {
+  background: rgba(217, 210, 176, 0.25);
+  border-color: var(--accent);
+}
+
+#touch-controls.idle #touch-move-zone,
+#touch-controls.idle #touch-aim-zone,
+#touch-controls.idle .touch-btn {
+  opacity: 0.45;
+}
+
+#touch-controls.idle .touch-btn.active {
+  opacity: 0.9;
+}
+
+@media (min-width: 768px) {
+  #touch-controls {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  #hud-objective-text { font-size: 0.82rem; }
+  .hud-hint { font-size: 0.68rem; max-width: 200px; }
+  #hud-battery-bar { width: 100px; }
+  .hint-overlay {
+    bottom: calc(var(--safe-bottom) + 140px);
+    max-width: 260px;
+  }
+  #touch-move-zone { width: 100px; height: 100px; }
+  #touch-aim-zone { width: 120px; height: 120px; }
+}

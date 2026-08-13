@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="The Light Is the Enemy — A psychological horror game where your flashlight reveals danger.">
+  <title>The Light Is the Enemy</title>
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <div id="app">
+  <canvas id="game-canvas"></canvas>
+
+  <div id="ui-layer">
+    <div id="hud" class="hidden">
+      <div id="hud-objective">
+        <span class="hud-label">OBJECTIVE</span>
+        <span id="hud-objective-badge" class="hud-badge">UPDATED</span>
+        <span id="hud-objective-text">Find the fuse</span>
+        <span id="hud-objective-hint" class="hud-hint"></span>
+      </div>
+      <div id="hud-flashlight">
+        <span class="hud-label">FLASHLIGHT</span>
+        <div id="hud-battery-bar"><div id="hud-battery-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="pause-overlay" class="hidden">
+      <span class="pause-text">PAUSED</span>
+      <div id="help-panel" class="help-panel">
+        <p class="help-heading">HOW TO SURVIVE</p>
+        <p class="help-text">Move through the darkness.</p>
+        <p class="help-text">Your flashlight helps you see.</p>
+        <p class="help-text">But anything inside its beam can see you.</p>
+        <p class="help-text">Listen carefully.</p>
+        <p class="help-text help-emphasis">Sometimes darkness is safer.</p>
+      </div>
+      <button class="menu-btn" id="btn-resume">RESUME</button>
+      <button class="menu-btn" id="btn-pause-settings">SETTINGS</button>
+      <button class="menu-btn" id="btn-main-menu">MAIN MENU</button>
+    </div>
+
+    <div id="hint-overlay" class="hint-overlay hidden">
+      <p id="hint-text" class="hint-title"></p>
+      <p id="hint-sub" class="hint-sub"></p>
+    </div>
+
+    <div id="tutorial-overlay" class="hidden">
+      <p id="tutorial-text"></p>
+    </div>
+
+    <div id="room-transition" class="room-transition">
+      <p id="room-transition-title" class="room-transition-title"></p>
+      <p id="room-transition-sub" class="room-transition-sub"></p>
+    </div>
+  </div>
+
+  <div id="menu-layer">
+    <div id="main-menu" class="menu-screen">
+      <h1 class="title">
+        <span class="title-line">THE LIGHT</span>
+        <span class="title-line title-sub">IS THE ENEMY</span>
+      </h1>
+      <div class="menu-buttons">
+        <button class="menu-btn menu-btn-primary" id="btn-play">PLAY</button>
+        <button class="menu-btn" id="btn-settings">SETTINGS</button>
+        <button class="menu-btn" id="btn-credits">CREDITS</button>
+      </div>
+    </div>
+
+    <div id="intro-screen" class="menu-screen hidden">
+      <p id="intro-text" class="intro-text"></p>
+    </div>
+
+    <div id="settings-menu" class="menu-screen hidden">
+      <h2 class="menu-heading">SETTINGS</h2>
+      <div class="setting-row">
+        <label>Master Volume</label>
+        <input type="range" id="set-master" min="0" max="100" value="80">
+        <span class="setting-value" id="val-master">80</span>
+      </div>
+      <div class="setting-row">
+        <label>SFX Volume</label>
+        <input type="range" id="set-sfx" min="0" max="100" value="90">
+        <span class="setting-value" id="val-sfx">90</span>
+      </div>
+      <div class="setting-row">
+        <label>Ambience</label>
+        <input type="range" id="set-ambience" min="0" max="100" value="70">
+        <span class="setting-value" id="val-ambience">70</span>
+      </div>
+      <div class="setting-row toggle-row">
+        <label>Screen Shake</label>
+        <button class="toggle-btn" id="set-shake" data-on="true">ON</button>
+      </div>
+      <div class="setting-row toggle-row">
+        <label>Visual Effects</label>
+        <button class="toggle-btn" id="set-effects" data-on="true">ON</button>
+      </div>
+      <button class="menu-btn" id="btn-settings-back">BACK</button>
+    </div>
+
+    <div id="credits-menu" class="menu-screen hidden">
+      <h2 class="menu-heading">CREDITS</h2>
+      <p class="credits-text">The Light Is the Enemy</p>
+      <p class="credits-text">A psychological horror experience.</p>
+      <p class="credits-text">Built with HTML5 Canvas &amp; Web Audio.</p>
+      <button class="menu-btn" id="btn-credits-back">BACK</button>
+    </div>
+
+    <div id="death-screen" class="menu-screen hidden">
+      <p class="death-main" id="death-main-text">YOU WERE SEEN</p>
+      <p class="death-stats" id="death-stats"></p>
+      <div class="menu-buttons">
+        <button class="menu-btn menu-btn-primary" id="btn-retry">TRY AGAIN</button>
+        <button class="menu-btn" id="btn-death-menu">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="touch-controls" class="hidden">
+    <div id="touch-move-zone" class="touch-zone">
+      <div id="touch-move-stick" class="touch-stick"></div>
+    </div>
+    <div id="touch-aim-zone" class="touch-zone touch-aim-zone"></div>
+    <button id="touch-flashlight" class="touch-btn" aria-label="Flashlight">&#128161;</button>
+    <button id="touch-sprint" class="touch-btn touch-sprint" aria-label="Sprint">&#9650;</button>
+  </div>
+
+  <div id="debug-overlay" class="hidden"></div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
