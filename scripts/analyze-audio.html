@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Audio Asset Analysis</title></head>
+<body>
+<pre id="out">Analyzing...</pre>
+<script type="module">
+import { AudioAssets } from '../src/audio/AudioAssets.js';
+
+const out = document.getElementById('out');
+const ctx = new AudioContext();
+const assets = new AudioAssets(ctx);
+
+async function run() {
+  await ctx.resume();
+  await assets.load();
+  const lines = ['Asset analysis:', ''];
+  for (const [name, buffer] of Object.entries(assets.buffers)) {
+    if (!buffer) continue;
+    const ch = buffer.numberOfChannels;
+    const sr = buffer.sampleRate;
+    const dur = buffer.duration;
+    let peak = 0, sumSq = 0;
+    const mono = new Float32Array(buffer.length);
+    for (let i = 0; i < buffer.length; i++) {
+      let s = 0;
+      for (let c = 0; c < ch; c++) s += buffer.getChannelData(c)[i];
+      mono[i] = s / ch;
+      sumSq += mono[i] * mono[i];
+      peak = Math.max(peak, Math.abs(mono[i]));
+    }
+    const rms = Math.sqrt(sumSq / buffer.length);
+    const seamless = assets.isLoopSeamless(buffer);
+    lines.push(`${name}: ${dur.toFixed(2)}s, ${sr}Hz, ${ch}ch, rms=${rms.toFixed(4)}, peak=${peak.toFixed(4)}, seamless=${seamless}`);
+  }
+  if (assets.footsteps) {
+    const f = assets.footsteps;
+    lines.push('');
+    lines.push(`Footsteps: ${f.peakCount} peaks, ${f.steps.length} slices`);
+    lines.push(`  walk pool: ${f.walkSteps.length}, run pool: ${f.runSteps.length}`);
+    lines.push(`  loopCorr: ${f.loopCorr.toFixed(3)}`);
+    lines.push(`  first slices: ${JSON.stringify(f.steps.slice(0, 8))}`);
+  }
+  out.textContent = lines.join('\n');
+  document.title = lines.slice(0, 6).join(' | ');
+  console.log(lines.join('\n'));
+}
+
+run().catch((e) => { out.textContent = String(e); console.error(e); });
+</script>
+</body>
+</html>

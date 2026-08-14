@@ -10,10 +10,13 @@
   left: calc(var(--safe-left) + 16px);
 }
 
-#hud-flashlight {
+#hud-resources {
   position: absolute;
   bottom: calc(var(--safe-bottom) + 16px);
   left: calc(var(--safe-left) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .hud-label {
@@ -57,24 +60,54 @@
   transform: translateY(0);
 }
 
-#hud-battery-bar {
+.hud-meter {
   width: 120px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 3px;
   overflow: hidden;
 }
 
-#hud-battery-fill {
+.hud-meter-fill {
   height: 100%;
-  width: 80%;
-  background: var(--accent);
+  width: 100%;
   border-radius: 3px;
-  transition: width 0.3s ease, background 0.3s ease;
+  transition: width 0.12s linear, background 0.35s ease, opacity 0.35s ease;
 }
 
-#hud-battery-fill.low {
+#hud-stamina-fill {
+  background: rgba(139, 145, 153, 0.85);
+}
+
+#hud-flashlight-fill {
+  background: var(--accent);
+}
+
+#hud-stamina-fill.low {
+  background: rgba(201, 168, 110, 0.9);
+}
+
+#hud-stamina-fill.critical,
+#hud-stamina-fill.warning {
+  background: rgba(201, 75, 75, 0.85);
+}
+
+#hud-flashlight-fill.low {
+  background: #c9b07a;
+}
+
+#hud-flashlight-fill.warning {
+  background: #c4946a;
+}
+
+#hud-flashlight-fill.critical {
   background: var(--danger);
+  animation: meter-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes meter-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
 #pause-overlay {
@@ -313,7 +346,7 @@
 @media (max-width: 767px) {
   #hud-objective-text { font-size: 0.82rem; }
   .hud-hint { font-size: 0.68rem; max-width: 200px; }
-  #hud-battery-bar { width: 100px; }
+  .hud-meter { width: 100px; }
   .hint-overlay {
     bottom: calc(var(--safe-bottom) + 140px);
     max-width: 260px;

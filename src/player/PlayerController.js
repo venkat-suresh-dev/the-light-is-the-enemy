@@ -18,9 +18,21 @@ export class PlayerController {
     if (!this.player.alive || !this.tileMap) return;
 
     const move = this.input.getMovementVector();
-    const sprinting = this.input.isDown('sprint') && this.player.stamina > 10;
-    this.player.isSprinting = sprinting && (move.x !== 0 || move.y !== 0);
-    this.player.isMoving = move.x !== 0 || move.y !== 0;
+    const moving = move.x !== 0 || move.y !== 0;
+    const wantsSprint = this.input.isDown('sprint') && moving;
+    const stamina = this.player.staminaMeter;
+    const restart = CONFIG.player.stamina.restartThreshold;
+
+    if (wantsSprint) {
+      if (this.player.isSprinting) {
+        this.player.isSprinting = stamina.current > 0;
+      } else {
+        this.player.isSprinting = stamina.current >= restart;
+      }
+    } else {
+      this.player.isSprinting = false;
+    }
+    this.player.isMoving = moving;
 
     const speed = this.player.isSprinting
       ? CONFIG.player.sprintSpeed
@@ -90,7 +102,7 @@ export class PlayerController {
       return;
     }
 
-    const wantsLight = this.input.isDown('flashlight') && this.player.flashlight.battery > 0;
+    const wantsLight = this.input.isDown('flashlight') && this.player.flashlight.canActivate();
 
     if (wantsLight && !this.player.flashlight.isOn) {
       this.player.flashlight.setOn(true);

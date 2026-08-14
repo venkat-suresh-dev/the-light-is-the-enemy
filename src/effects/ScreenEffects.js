@@ -51,7 +51,7 @@ export class ScreenEffects {
     if (!this.enabled) return;
 
     // Heartbeat vignette pulse
-    if (this.heartbeatPulse > 0.1) {
+    if (this.heartbeatPulse > 0.14) {
       const pulse = Math.sin(Date.now() * (0.005 + this.heartbeatPulse * 0.01)) * this.heartbeatPulse * 0.15;
       const gradient = ctx.createRadialGradient(
         viewW / 2, viewH / 2, viewW * 0.2,

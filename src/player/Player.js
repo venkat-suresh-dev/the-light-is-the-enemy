@@ -1,5 +1,5 @@
 import { CONFIG } from '../utils/Constants.js';
-import { clamp } from '../utils/MathUtils.js';
+import { ResourceMeter } from '../systems/ResourceMeter.js';
 import { Flashlight } from './Flashlight.js';
 
 export class Player {
@@ -8,8 +8,7 @@ export class Player {
     this.y = y;
     this.radius = CONFIG.player.radius;
     this.velocity = { x: 0, y: 0 };
-    this.stamina = CONFIG.player.stamina;
-    this.maxStamina = CONFIG.player.stamina;
+    this.staminaMeter = new ResourceMeter(CONFIG.player.stamina);
     this.isSprinting = false;
     this.isMoving = false;
     this.flashlight = new Flashlight();
@@ -22,11 +21,19 @@ export class Player {
     this.bodyAngle = -Math.PI / 2;
   }
 
+  get stamina() {
+    return this.staminaMeter.current;
+  }
+
+  get maxStamina() {
+    return this.staminaMeter.max;
+  }
+
   reset(x, y) {
     this.x = x;
     this.y = y;
     this.velocity = { x: 0, y: 0 };
-    this.stamina = this.maxStamina;
+    this.staminaMeter.reset();
     this.isSprinting = false;
     this.isMoving = false;
     this.alive = true;
@@ -51,15 +58,24 @@ export class Player {
     }
 
     if (this.isSprinting && this.isMoving) {
-      this.stamina = clamp(this.stamina - CONFIG.player.staminaDrain * deltaTime, 0, this.maxStamina);
-      if (this.stamina <= 0) this.isSprinting = false;
+      this.staminaMeter.drain(deltaTime);
+      if (this.staminaMeter.isEmpty()) this.isSprinting = false;
     } else {
-      this.stamina = clamp(this.stamina + CONFIG.player.staminaRegen * deltaTime, 0, this.maxStamina);
+      this.staminaMeter.recharge(deltaTime);
     }
   }
 
   getBobOffset() {
     return Math.sin(this._bobPhase) * (this.isSprinting ? 3 : 1.5);
+  }
+
+  getStaminaState() {
+    const pct = this.staminaMeter.normalized();
+    const cfg = CONFIG.player.stamina;
+    if (pct <= 0) return 'empty';
+    if (pct < cfg.criticalPercent) return 'critical';
+    if (pct < cfg.lowPercent) return 'low';
+    return 'normal';
   }
 
   die() {

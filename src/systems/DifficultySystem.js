@@ -21,19 +21,11 @@ export class DifficultySystem {
   }
 
   getBatteryDrainRate() {
-    let rate = CONFIG.flashlight.drainRate * (1 + (this.roomNumber - 1) * CONFIG.difficulty.batteryDrainScale);
+    let rate = CONFIG.flashlight.power.drainRate * (1 + (this.roomNumber - 1) * CONFIG.difficulty.batteryDrainScale);
     if (this.roomNumber <= CONFIG.difficulty.earlyRoomCount) {
       rate *= CONFIG.difficulty.earlyRoomBatteryMultiplier;
     }
     return rate;
-  }
-
-  getHeartbeatIntensity(distance) {
-    if (distance > 400) return 0;
-    if (distance > 250) return 0.1;
-    if (distance > 150) return 0.3;
-    if (distance > 80) return 0.6;
-    return 0.9;
   }
 
   getRoomSeed(baseSeed, roomNumber) {

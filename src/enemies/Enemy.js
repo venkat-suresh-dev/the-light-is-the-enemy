@@ -19,7 +19,9 @@ export class Enemy {
     this.speedMultiplier = 1;
     this.idlePhase = 0;
     this.footstepTimer = 0;
+    this.nextFootstepInterval = 0.48;
     this.visible = false;
+    this.wasVisible = false;
     this.eyeFlash = 0;
     this.shouldEmitAlert = false;
     this.animPhase = 0;
@@ -84,6 +86,18 @@ export class Enemy {
       return 'attack';
     }
     return null;
+  }
+
+  scheduleNextFootstep() {
+    const hunting = this.state === ENEMY_STATE.HUNTING;
+    const speed = Math.max(this.ai.getSpeed(), 1);
+    const stride = hunting ? 36 : 52;
+    let interval = stride / speed;
+    interval *= hunting ? (0.88 + Math.random() * 0.16) : (0.92 + Math.random() * 0.28);
+    if (Math.random() < (hunting ? 0.08 : 0.22)) {
+      interval += 0.12 + Math.random() * 0.28;
+    }
+    this.nextFootstepInterval = interval;
   }
 
   isActive() {

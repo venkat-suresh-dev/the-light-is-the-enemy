@@ -22,8 +22,16 @@ export class GameLoop {
 
   _loop = (timestamp) => {
     if (!this.running) return;
-    this.updateFn(timestamp);
-    this.renderFn();
+    try {
+      this.updateFn(timestamp);
+    } catch (err) {
+      console.error('Game update error:', err);
+    }
+    try {
+      this.renderFn();
+    } catch (err) {
+      console.error('Game render error:', err);
+    }
     this._rafId = requestAnimationFrame(this._loop);
   };
 }

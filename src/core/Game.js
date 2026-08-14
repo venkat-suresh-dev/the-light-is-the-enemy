@@ -14,6 +14,7 @@ import { ScreenEffects } from '../effects/ScreenEffects.js';
 import { Particles } from '../effects/Particles.js';
 import { ObjectiveSystem } from '../systems/ObjectiveSystem.js';
 import { DifficultySystem } from '../systems/DifficultySystem.js';
+import { ThreatSystem } from '../systems/ThreatSystem.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { HUD } from '../ui/HUD.js';
 import { Menu } from '../ui/Menu.js';
@@ -31,6 +32,7 @@ export class Game {
     this.input = new Input(canvas, this.events);
     this.saveSystem = new SaveSystem();
     this.difficulty = new DifficultySystem();
+    this.threat = new ThreatSystem();
     this.roomGenerator = new RoomGenerator();
 
     this.player = new Player(0, 0);
@@ -58,6 +60,7 @@ export class Game {
     this.viewW = 0;
     this.viewH = 0;
     this.debug = false;
+    this.debugAudio = false;
     this._enemyAlerted = false;
     this._transitionTimer = 0;
     this._firstRoom = true;
@@ -75,12 +78,17 @@ export class Game {
 
     const params = new URLSearchParams(window.location.search);
     this.debug = params.get('debug') === 'true';
+    this.debugAudio = params.get('debug') === 'audio';
+    this.audio.debug = this.debugAudio;
+    if (this.audio.assets) this.audio.assets.debug = this.debugAudio;
+    if (this.debugAudio) window.__audio = this.audio;
     const flashlightDebug = params.get('debug') === 'flashlight';
     const flashlightSimple = params.get('flashlight-simple') === 'true';
     this.lighting.setDebugFlashlight(flashlightDebug, flashlightSimple);
 
     this.state = GAME_STATE.MENU;
     this.menu.showMain();
+    this.audio.bootstrap().catch((err) => console.warn('Audio bootstrap failed:', err));
 
     this.gameLoop = new GameLoop(
       (ts) => this.update(ts),
@@ -132,8 +140,16 @@ export class Game {
       this.screenEffects.cameraShake.add(0.2, 0.3);
     });
 
+    this.events.on('enemyIlluminated', ({ enemy, player }) => {
+      this.audio.playIlluminationSting(enemy, player);
+    });
+
     this.events.on('playerDamaged', () => {
       this._onPlayerDeath();
+    });
+
+    this.events.on('objectiveItemFound', () => {
+      this.audio.playPickup();
     });
 
     this.events.on('objectiveUpdated', ({ text, hint, updated }) => {
@@ -141,6 +157,7 @@ export class Game {
     });
 
     this.events.on('roomCompleted', () => {
+      this.audio.playDoor();
       this._onRoomComplete();
     });
   }
@@ -149,10 +166,14 @@ export class Game {
     this.menu.on('play', async () => {
       this.menu.setPlayEnabled(false);
       try {
-        await this.audio.init();
-        await this.audio.resume();
+        this.audio.unlockFromGesture();
+        this.audio.init().catch((err) => {
+          console.warn('Audio initialization failed:', err);
+        });
         await this.menu.playIntro();
         this.startGame();
+        this.audio.notifyGameplayStart();
+        this.input.endFrame();
       } catch (err) {
         console.error('Failed to start game:', err);
         this.menu.showMain();
@@ -173,6 +194,7 @@ export class Game {
       this.hud.hide();
       this.touchControls.hide();
       this.deathScreen.hide();
+      this.audio.setGameState('MENU');
       this.audio.suspend();
     });
 
@@ -193,6 +215,8 @@ export class Game {
       this.menu.showMain();
       this.hud.hide();
       this.touchControls.hide();
+      this.audio.setGameState('MENU');
+      this.audio.resume();
     });
   }
 
@@ -248,6 +272,8 @@ export class Game {
     this.player.flashlight.setDrainRate(this.difficulty.getBatteryDrainRate());
     this.objectiveSystem.setup(this.room, roomNumber);
     this.audio.setRoomTheme(this.room.theme, this.room.tileMap);
+    this.threat.reset();
+    this.audio.resetForRoom();
 
     this.hud.showRoomTransition(roomNumber, this.room.themeLabel);
 
@@ -286,16 +312,19 @@ export class Game {
     }
 
     if (this.state === GAME_STATE.MENU || this.state === GAME_STATE.BOOT) {
+      this.input.endFrame();
       return;
     }
 
     if (this.state === GAME_STATE.PAUSED) {
+      this.input.endFrame();
       return;
     }
 
     if (this.state === GAME_STATE.TRANSITIONING) {
       this._transitionTimer += dt;
       if (this._transitionTimer >= CONFIG.timing.roomTransition) {
+        this.audio.playDoor();
         this._loadRoom(this.roomNumber);
         this.state = GAME_STATE.PLAYING;
       }
@@ -344,31 +373,57 @@ export class Game {
       this.tutorial.update(dt, this.player, this._enemyAlerted);
     }
 
-    // Audio
-    const closestDist = this.enemyManager.getClosestDistance(this.player.x, this.player.y);
-    const heartbeatIntensity = this.difficulty.getHeartbeatIntensity(closestDist);
-    this.player.dangerLevel = heartbeatIntensity;
-    this.audio.playHeartbeat(heartbeatIntensity);
-    this.audio.updateHeartbeat(dt, this.player.x, this.player.y);
-    this.audio.updateBreathing(dt, this.player, heartbeatIntensity);
-    this.screenEffects.setHeartbeat(heartbeatIntensity);
+    // Audio + threat
+    this.threat.update(dt, this.enemyManager.enemies, this.player, this.room.tileMap);
+    const threat = this.threat.intensity;
+    this.player.dangerLevel = threat;
+    this.audio.updateThreat(dt, threat);
+    this.audio.updateHeartbeat(dt);
+    this.audio.updateBreathing(dt, this.player, threat);
+    this.screenEffects.setHeartbeat(threat);
 
     this.hints.update(dt, this.player, this.objectiveSystem.phase, this.room);
 
-    if (this.player.isMoving && this.player.footstepTimer > (this.player.isSprinting ? 0.28 : 0.42)) {
-      this.player.footstepTimer = 0;
-      this.audio.playFootstep(this.player.x, this.player.y, this.player.flashlight.angle, this.player.isSprinting);
+    if (this.debugAudio && this.input.keysPressed.has('F9')) {
+      this.audio.playDebugDirectFootstep(false);
+    }
+    if (this.debugAudio && this.input.keysPressed.has('F10')) {
+      this.audio._playDebugEnemyStep(-0.82);
+    }
+    if (this.debugAudio && this.input.keysPressed.has('F11')) {
+      this.audio._playDebugEnemyStep(0.82);
+    }
+    if (this.debugAudio && this.input.keysPressed.has('F12')) {
+      this.audio._playDebugHeartbeat(0.5);
+    }
+    if (this.debugAudio && this.input.keysPressed.has('=')) {
+      this.audio._playDebugHeartbeat(0.9);
+    }
+    if (this.debugAudio && this.input.keysPressed.has('-')) {
+      this.audio._playDebugAmbient();
     }
 
+    this.audio.updatePlayerFootsteps(dt, this.player);
+
     for (const enemy of this.enemyManager.enemies) {
-      if (enemy.ai.shouldPlayFootstep() && enemy.footstepTimer > 0.4) {
+      const enemySpeed = Math.hypot(enemy.velocity.x, enemy.velocity.y);
+      const distToPlayer = Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y);
+
+      if (enemySpeed < 12 || !enemy.ai.shouldPlayFootstep() || distToPlayer > 400) {
         enemy.footstepTimer = 0;
+        continue;
+      }
+
+      if (enemy.footstepTimer >= enemy.nextFootstepInterval) {
+        enemy.footstepTimer = 0;
+        enemy.scheduleNextFootstep();
         this.audio.playEnemyFootstep(
           enemy.x, enemy.y,
           this.player.x, this.player.y,
           this.player.flashlight.angle,
           enemy.state,
-          this.room.tileMap
+          this.room.tileMap,
+          enemySpeed
         );
       }
     }
@@ -376,7 +431,8 @@ export class Game {
     this.audio.updateAmbientHorror(dt, this.player, this.room);
 
     // HUD
-    this.hud.updateBattery(this.player.flashlight.getBatteryPercent());
+    this.hud.updateStamina(this.player.staminaMeter.normalized(), this.player.getStaminaState());
+    this.hud.updateFlashlight(this.player.flashlight.getBatteryPercent(), this.player.flashlight.getPowerState());
 
     // Effects
     this.screenEffects.update(dt);
@@ -450,7 +506,7 @@ export class Game {
     }
 
     // Debug overlay
-    if (this.debug) {
+    if (this.debug || this.debugAudio) {
       this._renderDebug();
     }
   }
@@ -464,6 +520,8 @@ export class Game {
       `Room: ${this.roomNumber}`,
       `State: ${this.state}`,
       `Player: ${this.player.x.toFixed(0)}, ${this.player.y.toFixed(0)}`,
+      `Stamina: ${this.player.stamina.toFixed(0)}%`,
+      `Threat: ${this.threat.intensity.toFixed(2)} (${this.threat.raw.toFixed(2)})`,
       `Flashlight: ${this.player.flashlight.isOn ? 'ON' : 'OFF'} (${this.player.flashlight.battery.toFixed(0)}%)`,
       `Enemies: ${this.enemyManager.enemies.length}`,
     ];
@@ -475,6 +533,32 @@ export class Game {
     lines.push(`Theme: ${this.room.theme} (${this.room.themeLabel})`);
     lines.push(`Objective: ${this.objectiveSystem.phase}`);
     lines.push(`Survival: ${this.survivalTime.toFixed(1)}s`);
+
+    if (this.debugAudio) {
+      const a = this.audio.getDebugSnapshot();
+      lines.push('');
+      lines.push('AUDIO');
+      lines.push(`Context: ${a.context} t=${a.currentTime}`);
+      lines.push(`Master: ${a.master.toFixed(2)} amb=${a.ambience.toFixed(2)} music=${(a.music ?? 0).toFixed(2)}`);
+      lines.push(`Player: ${a.player.toFixed(2)} Enemy: ${a.enemy.toFixed(2)} HB: ${a.heartbeat.toFixed(2)}`);
+      lines.push(`Threat: ${a.threat.toFixed(2)} hb=${(a.heartbeatVoice ?? 0).toFixed(2)} bpm=${a.heartbeatBpm ?? 0}`);
+      lines.push(` HB pulse=${(a.heartbeatPulseGain ?? 0).toFixed(2)} eff=${(a.heartbeatEffective ?? 0).toFixed(3)} threatMus=${(a.threatMusic ?? 0).toFixed(3)}`);
+      lines.push(`Menu: loaded=${a.menuMusicLoaded} playing=${a.menuMusicPlaying} ctx=${a.context}`);
+      lines.push(`Footsteps loaded=${a.footstepsLoaded} ready=${a.footstepsReady}`);
+      lines.push(` Slices: ${a.footstepsSlices} walk=${a.walkSlices} run=${a.runSlices}`);
+      lines.push(` Steps asset/fallback: ${a.counts.playerStepsAsset}/${a.counts.playerStepsFallback}`);
+      lines.push(` Last step: ${a.lastPlayerStepSource} gain=${(a.lastPlayerStepGain ?? 0).toFixed(2)} spd=${a.lastPlayerSpeed}`);
+      if (a.lastEnemyStep) {
+        const e = a.lastEnemyStep;
+        lines.push(` Enemy step: dist=${e.dist} spd=${e.speed} gain=${e.gain} ${e.state}`);
+      }
+      lines.push(` Pickups=${a.counts.pickups} Doors=${a.counts.doors} GameOver=${a.counts.gameOvers}`);
+      lines.push(` Enemy steps: ${a.counts.enemySteps} heartbeats: ${a.counts.heartbeats} sfx=${(a.sfx ?? 0).toFixed(2)}`);
+      if (a.lastPathError) lines.push(` PATH ERR: ${a.lastPathError}`);
+      lines.push(` Failed: ${a.footstepStats?.playerFailed ?? 0}`);
+      if (a.lastResumeError) lines.push(`ResumeErr: ${a.lastResumeError}`);
+      lines.push('F9=direct F10/F11=enemy F12/==hb -=amb');
+    }
 
     overlay.textContent = lines.join('\n');
 

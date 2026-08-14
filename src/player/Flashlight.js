@@ -1,5 +1,6 @@
 import { CONFIG } from '../utils/Constants.js';
-import { clamp, lerp, angleDifference } from '../utils/MathUtils.js';
+import { clamp, angleDifference } from '../utils/MathUtils.js';
+import { ResourceMeter } from '../systems/ResourceMeter.js';
 
 export class Flashlight {
   constructor() {
@@ -11,23 +12,39 @@ export class Flashlight {
     this.range = CONFIG.flashlight.range;
     this.fov = CONFIG.flashlight.fov;
     this.intensity = CONFIG.flashlight.intensity;
-    this.battery = CONFIG.flashlight.battery;
-    this.maxBattery = CONFIG.flashlight.battery;
+    this.power = new ResourceMeter(CONFIG.flashlight.power);
     this.flickerMultiplier = 1;
     this.colorShift = 0;
     this._flickerPhase = 0;
     this._flickerSeed = Math.random() * 100;
-    this._drainRate = CONFIG.flashlight.drainRate;
-    this._rechargeRate = CONFIG.flashlight.rechargeRate;
+    this._drainRate = CONFIG.flashlight.power.drainRate;
     this._justFlickered = false;
   }
 
+  get battery() {
+    return this.power.current;
+  }
+
+  get maxBattery() {
+    return this.power.max;
+  }
+
+  canActivate() {
+    if (this.isOn) return this.power.current > 0;
+    return this.power.current >= CONFIG.flashlight.power.restartThreshold;
+  }
+
   toggle() {
+    if (!this.isOn && !this.canActivate()) return false;
     this.isOn = !this.isOn;
     return this.isOn;
   }
 
   setOn(value) {
+    if (value && !this.canActivate()) {
+      this.isOn = false;
+      return;
+    }
     this.isOn = value;
   }
 
@@ -47,6 +64,7 @@ export class Flashlight {
 
   setDrainRate(rate) {
     this._drainRate = rate;
+    this.power.drainRate = rate;
   }
 
   update(deltaTime) {
@@ -57,39 +75,61 @@ export class Flashlight {
 
     this._flickerPhase += deltaTime;
     this._justFlickered = false;
+    this.range = CONFIG.flashlight.range;
 
     if (this.isOn) {
-      this.battery = clamp(this.battery - this._drainRate * deltaTime, 0, this.maxBattery);
+      this.power.drain(deltaTime, this._drainRate);
 
-      if (this.battery <= 0) {
+      if (this.power.isEmpty()) {
         this.isOn = false;
         this.flickerMultiplier = 0;
       } else {
-        const lowBattery = this.battery < 25;
-        const flickerBase = lowBattery ? CONFIG.flashlight.flickerAmount * 1.5 : CONFIG.flashlight.flickerAmount;
-        const flicker = Math.sin(this._flickerPhase * 8 + this._flickerSeed) * flickerBase;
-        const flicker2 = Math.sin(this._flickerPhase * 17 + this._flickerSeed * 2) * flickerBase * 0.4;
-        const flicker3 = Math.sin(this._flickerPhase * 31) * flickerBase * 0.15;
-        this.flickerMultiplier = clamp(1 + flicker + flicker2 + flicker3, 0.75, 1.02);
-        this.colorShift = flicker3 * 0.5;
-
-        if (Math.abs(flicker2) > flickerBase * 0.3) this._justFlickered = true;
-
-        if (lowBattery) {
-          this.range = CONFIG.flashlight.range * (0.55 + this.battery / 45);
-        } else {
-          this.range = CONFIG.flashlight.range;
-        }
+        this._updateLowPowerFlicker();
       }
     } else {
-      this.battery = clamp(this.battery + this._rechargeRate * deltaTime, 0, this.maxBattery);
+      this.power.recharge(deltaTime);
       this.flickerMultiplier = 1;
       this.colorShift = 0;
-      this.range = CONFIG.flashlight.range;
     }
   }
 
+  _updateLowPowerFlicker() {
+    const state = this.getPowerState();
+    const cfg = CONFIG.flashlight;
+    let flickerScale = 1;
+    let base = 1;
+
+    if (state === 'low') {
+      flickerScale = 1.2;
+    } else if (state === 'warning') {
+      flickerScale = 1.55;
+      base = 0.96;
+    } else if (state === 'critical') {
+      flickerScale = 1.85;
+      base = 0.9;
+    }
+
+    const flickerBase = cfg.flickerAmount * flickerScale;
+    const flicker = Math.sin(this._flickerPhase * 8 + this._flickerSeed) * flickerBase;
+    const flicker2 = Math.sin(this._flickerPhase * 17 + this._flickerSeed * 2) * flickerBase * 0.4;
+    const flicker3 = Math.sin(this._flickerPhase * 31) * flickerBase * 0.15;
+    this.flickerMultiplier = clamp(base + flicker + flicker2 + flicker3, 0.75, 1.02);
+    this.colorShift = flicker3 * 0.5;
+
+    if (Math.abs(flicker2) > flickerBase * 0.3) this._justFlickered = true;
+  }
+
   getBatteryPercent() {
-    return this.battery / this.maxBattery;
+    return this.power.normalized();
+  }
+
+  getPowerState() {
+    const pct = this.power.normalized();
+    const cfg = CONFIG.flashlight.power;
+    if (pct <= 0) return 'empty';
+    if (pct < cfg.criticalPercent) return 'critical';
+    if (pct < cfg.warningPercent) return 'warning';
+    if (pct < cfg.lowPercent) return 'low';
+    return 'normal';
   }
 }

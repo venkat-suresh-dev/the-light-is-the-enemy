@@ -4,7 +4,8 @@ export class HUD {
     this.objectiveText = document.getElementById('hud-objective-text');
     this.objectiveHint = document.getElementById('hud-objective-hint');
     this.objectiveBadge = document.getElementById('hud-objective-badge');
-    this.batteryFill = document.getElementById('hud-battery-fill');
+    this.staminaFill = document.getElementById('hud-stamina-fill');
+    this.flashlightFill = document.getElementById('hud-flashlight-fill');
     this.roomTransition = document.getElementById('room-transition');
     this.roomTransitionTitle = document.getElementById('room-transition-title');
     this.roomTransitionSub = document.getElementById('room-transition-sub');
@@ -29,10 +30,21 @@ export class HUD {
     }
   }
 
-  updateBattery(percent) {
+  updateStamina(percent, state = 'normal') {
+    this._updateMeter(this.staminaFill, percent, state);
+  }
+
+  updateFlashlight(percent, state = 'normal') {
+    this._updateMeter(this.flashlightFill, percent, state);
+  }
+
+  _updateMeter(fill, percent, state) {
+    if (!fill) return;
     const pct = Math.max(0, Math.min(100, percent * 100));
-    this.batteryFill.style.width = `${pct}%`;
-    this.batteryFill.classList.toggle('low', pct < 25);
+    fill.style.width = `${pct}%`;
+    fill.classList.toggle('low', state === 'low');
+    fill.classList.toggle('warning', state === 'warning');
+    fill.classList.toggle('critical', state === 'critical' || state === 'empty');
   }
 
   showRoomTransition(roomNumber, themeLabel) {

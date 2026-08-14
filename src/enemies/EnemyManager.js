@@ -32,6 +32,11 @@ export class EnemyManager {
       const result = enemy.update(deltaTime, player, this.tileMap, flashlight);
       enemy.visible = Visibility.isIlluminated(enemy.x, enemy.y, flashlight, this.tileMap);
 
+      if (enemy.visible && !enemy.wasVisible) {
+        this.events.emit('enemyIlluminated', { enemy, player });
+      }
+      enemy.wasVisible = enemy.visible;
+
       const dist = distance(enemy.x, enemy.y, player.x, player.y);
       if (dist < closestDist) {
         closestDist = dist;

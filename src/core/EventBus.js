@@ -22,7 +22,11 @@ export class EventBus {
     const list = this.listeners.get(event);
     if (!list) return;
     for (const cb of list) {
-      cb(data);
+      try {
+        cb(data);
+      } catch (err) {
+        console.error(`Event handler failed (${event}):`, err);
+      }
     }
   }
 
