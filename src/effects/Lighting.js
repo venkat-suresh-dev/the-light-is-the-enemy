@@ -3,6 +3,7 @@ import { buildConeVisibilityPolygon } from '../utils/Geometry.js';
 import { LocalLight } from './LocalLight.js';
 import { PlayerRenderer } from '../characters/PlayerRenderer.js';
 import { EnemyRenderer } from '../characters/EnemyRenderer.js';
+import { Visibility } from '../world/Visibility.js';
 
 /**
  * World + darkness rendering with ambient visibility and two-layer flashlight.
@@ -82,6 +83,8 @@ export class Lighting {
 
     this._renderFloor(ctx, tileMap, startTX, endTX, startTY, endTY, tileSize, cameraX, cameraY, scale, viewW, viewH, room.theme);
 
+    this._renderPlayerAmbientGlow(ctx, player, cameraX, cameraY, scale, viewW, viewH);
+
     // Color spill from local lights onto environment
     if (room.envLights) {
       for (const light of room.envLights) {
@@ -108,7 +111,7 @@ export class Lighting {
 
     this._renderWalls(ctx, tileMap, startTX, endTX, startTY, endTY, tileSize, cameraX, cameraY, scale, viewW, viewH);
 
-    this._renderObjective(ctx, room, cameraX, cameraY, scale, viewW, viewH);
+    this._renderObjective(ctx, room, player, tileMap, cameraX, cameraY, scale, viewW, viewH);
     this._renderExit(ctx, room, cameraX, cameraY, scale, viewW, viewH);
 
     for (const enemy of enemies) {
@@ -116,6 +119,28 @@ export class Lighting {
     }
 
     PlayerRenderer.render(ctx, player, cameraX, cameraY, scale, viewW, viewH, this._time);
+  }
+
+  _renderPlayerAmbientGlow(ctx, player, cameraX, cameraY, scale, viewW, viewH) {
+    if (!player) return;
+    const spill = CONFIG.lighting.ambientFloorSpill ?? 0;
+    if (spill <= 0) return;
+
+    const px = (player.x - cameraX) * scale + viewW / 2;
+    const py = (player.y - cameraY) * scale + viewH / 2;
+    const r = CONFIG.lighting.ambientPlayerRadius * scale;
+
+    ctx.save();
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, r);
+    grad.addColorStop(0, `rgba(255, 244, 214, ${spill})`);
+    grad.addColorStop(0.45, `rgba(255, 244, 214, ${spill * 0.42})`);
+    grad.addColorStop(0.75, `rgba(255, 244, 214, ${spill * 0.12})`);
+    grad.addColorStop(1, 'rgba(255, 244, 214, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   _renderFloor(ctx, tileMap, startTX, endTX, startTY, endTY, tileSize, cameraX, cameraY, scale, viewW, viewH, theme) {
@@ -232,14 +257,28 @@ export class Lighting {
         ctx.fillRect(-s * 0.4, -s * 0.3, s * 0.8, s * 0.5);
         break;
       case 'large_generator':
+      case 'backup_generator':
         ctx.fillStyle = CONFIG.colors.metal;
-        ctx.fillRect(-s, -s * 0.7, s * 2, s * 1.4);
+        ctx.fillRect(-s * 1.15, -s * 0.75, s * 2.3, s * 1.5);
+        ctx.fillStyle = CONFIG.colors.object;
+        ctx.fillRect(-s * 1.0, -s * 0.58, s * 2.0, s * 1.05);
         ctx.fillStyle = CONFIG.colors.power;
-        ctx.fillRect(-s * 0.3, -s * 0.2, s * 0.15, s * 0.15);
+        ctx.globalAlpha = lm.type === 'backup_generator' ? 0.7 + Math.sin(this._time * 1.4) * 0.18 : 1;
+        ctx.fillRect(-s * 0.38, -s * 0.18, s * 0.18, s * 0.18);
+        ctx.globalAlpha = 1;
         ctx.strokeStyle = CONFIG.colors.objectHighlight;
         ctx.lineWidth = 1;
         for (let i = 0; i < 3; i++) {
           ctx.strokeRect(-s * 0.7 + i * s * 0.35, -s * 0.5, s * 0.25, s * 0.8);
+        }
+        if (lm.type === 'backup_generator') {
+          ctx.strokeStyle = 'rgba(217,164,65,0.35)';
+          ctx.beginPath();
+          ctx.moveTo(-s * 1.25, s * 0.55);
+          ctx.bezierCurveTo(-s * 1.8, s * 1.0, -s * 0.8, s * 1.2, -s * 1.5, s * 1.55);
+          ctx.moveTo(s * 1.1, s * 0.55);
+          ctx.bezierCurveTo(s * 1.8, s * 1.05, s * 0.6, s * 1.3, s * 1.4, s * 1.65);
+          ctx.stroke();
         }
         break;
       case 'pillar':
@@ -274,6 +313,44 @@ export class Lighting {
         ctx.fillRect(-s * 0.35, -s * 0.5, s * 0.7, s * 0.2);
         ctx.strokeStyle = CONFIG.colors.objectHighlight;
         ctx.strokeRect(-s * 0.35, -s * 0.5, s * 0.7, s * 0.2);
+        break;
+      case 'fuse_station':
+        ctx.fillStyle = CONFIG.colors.metal;
+        ctx.fillRect(-s * 0.7, -s * 0.55, s * 1.4, s * 1.1);
+        ctx.fillStyle = CONFIG.colors.object;
+        ctx.fillRect(-s * 0.55, -s * 0.38, s * 1.1, s * 0.76);
+        ctx.strokeStyle = 'rgba(217,210,176,0.25)';
+        ctx.strokeRect(-s * 0.55, -s * 0.38, s * 1.1, s * 0.76);
+        ctx.strokeStyle = CONFIG.colors.metal;
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.7, s * 0.3);
+        ctx.bezierCurveTo(-s * 1.1, s * 0.55, -s * 0.6, s * 0.9, -s * 1.0, s * 1.1);
+        ctx.moveTo(s * 0.7, s * 0.25);
+        ctx.bezierCurveTo(s * 1.15, s * 0.55, s * 0.55, s * 0.85, s * 1.0, s * 1.08);
+        ctx.stroke();
+        break;
+      case 'damaged_wall':
+        ctx.fillStyle = 'rgba(0,0,0,0.38)';
+        ctx.fillRect(-s * 0.9, -s * 0.55, s * 1.8, s * 1.1);
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.7, -s * 0.35);
+        ctx.lineTo(-s * 0.1, s * 0.2);
+        ctx.lineTo(s * 0.45, -s * 0.15);
+        ctx.lineTo(s * 0.75, s * 0.35);
+        ctx.stroke();
+        break;
+      case 'conduit_run':
+        ctx.strokeStyle = CONFIG.colors.metal;
+        ctx.lineWidth = 2 * scale;
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-s * 1.5, i * s * 0.18);
+          ctx.lineTo(s * 1.5, i * s * 0.18);
+          ctx.stroke();
+        }
+        ctx.fillStyle = CONFIG.colors.objectHighlight;
+        ctx.fillRect(-s * 0.2, -s * 0.35, s * 0.4, s * 0.7);
         break;
     }
     ctx.restore();
@@ -362,6 +439,20 @@ export class Lighting {
           ctx.fillRect(-s * 0.3, -s * 0.35, s * 0.6, s * 0.15);
           ctx.strokeRect(-s * 0.3, -s * 0.35, s * 0.6, s * 0.15);
           break;
+        case 'electrical_panel':
+        case 'maintenance_panel':
+          ctx.fillStyle = CONFIG.colors.metal;
+          ctx.fillRect(-s * 0.55, -s * 0.75, s * 1.1, s * 1.5);
+          ctx.strokeRect(-s * 0.55, -s * 0.75, s * 1.1, s * 1.5);
+          ctx.fillStyle = CONFIG.colors.power;
+          ctx.globalAlpha = 0.45;
+          ctx.fillRect(-s * 0.35, -s * 0.55, s * 0.7, s * 0.16);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = CONFIG.colors.objectHighlight;
+          for (let i = 0; i < 3; i++) {
+            ctx.fillRect(-s * 0.3, -s * 0.2 + i * s * 0.24, s * 0.6, s * 0.05);
+          }
+          break;
         case 'machinery':
           ctx.fillStyle = CONFIG.colors.metal;
           ctx.fillRect(-s * 0.7, -s * 0.6, s * 1.4, s * 1.2);
@@ -387,11 +478,21 @@ export class Lighting {
           break;
         case 'cable':
         case 'wire':
+        case 'conduit_floor':
           ctx.strokeStyle = CONFIG.colors.metal;
-          ctx.lineWidth = 2;
+          ctx.lineWidth = d.type === 'conduit_floor' ? 3 : 2;
           ctx.beginPath();
-          ctx.moveTo(-s, 0);
-          ctx.bezierCurveTo(-s * 0.3, -s, s * 0.3, s, s, 0);
+          if (d.type === 'conduit_floor') {
+            ctx.moveTo(-s * 1.2, 0);
+            ctx.lineTo(s * 1.2, 0);
+            ctx.moveTo(-s * 0.55, -s * 0.16);
+            ctx.lineTo(-s * 0.55, s * 0.16);
+            ctx.moveTo(s * 0.4, -s * 0.16);
+            ctx.lineTo(s * 0.4, s * 0.16);
+          } else {
+            ctx.moveTo(-s, 0);
+            ctx.bezierCurveTo(-s * 0.3, -s, s * 0.3, s, s, 0);
+          }
           ctx.stroke();
           break;
         case 'warning_stripe':
@@ -420,6 +521,27 @@ export class Lighting {
           ctx.beginPath();
           ctx.ellipse(0, 0, s * 0.5, s * 0.35, 0, 0, Math.PI * 2);
           ctx.fill();
+          break;
+        case 'debris':
+        case 'toolbox':
+          ctx.fillStyle = d.type === 'toolbox' ? CONFIG.colors.power : CONFIG.colors.object;
+          ctx.globalAlpha = d.type === 'toolbox' ? 0.55 : 1;
+          ctx.fillRect(-s * 0.65, -s * 0.25, s * 1.3, s * 0.5);
+          ctx.globalAlpha = 1;
+          ctx.strokeRect(-s * 0.65, -s * 0.25, s * 1.3, s * 0.5);
+          break;
+        case 'damaged_floor':
+          ctx.fillStyle = 'rgba(0,0,0,0.32)';
+          ctx.beginPath();
+          ctx.moveTo(-s * 0.8, -s * 0.2);
+          ctx.lineTo(-s * 0.2, -s * 0.55);
+          ctx.lineTo(s * 0.6, -s * 0.15);
+          ctx.lineTo(s * 0.25, s * 0.55);
+          ctx.lineTo(-s * 0.65, s * 0.35);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+          ctx.stroke();
           break;
         case 'broken':
           ctx.beginPath();
@@ -465,19 +587,98 @@ export class Lighting {
     return `rgba(${r},${g},${b},${alpha})`;
   }
 
-  _renderObjective(ctx, room, cameraX, cameraY, scale, viewW, viewH) {
-    const sx = (room.objective.x - cameraX) * scale + viewW / 2;
-    const sy = (room.objective.y - cameraY) * scale + viewH / 2;
+  _renderObjective(ctx, room, player, tileMap, cameraX, cameraY, scale, viewW, viewH) {
+    if (room.fuse && !room.fuseCollected) {
+      this._renderFuse(ctx, room.fuse, player, tileMap, cameraX, cameraY, scale, viewW, viewH);
+    }
+    if (room.generator) {
+      this._renderGeneratorCue(ctx, room, player, tileMap, cameraX, cameraY, scale, viewW, viewH);
+    }
+  }
+
+  _renderFuse(ctx, fuse, player, tileMap, cameraX, cameraY, scale, viewW, viewH) {
+    const sx = (fuse.x - cameraX) * scale + viewW / 2;
+    const sy = (fuse.y - cameraY) * scale + viewH / 2;
+    const dist = player ? Math.hypot(player.x - fuse.x, player.y - fuse.y) : Infinity;
+    const lit = player?.flashlight
+      ? Visibility.isIlluminated(fuse.x, fuse.y, player.flashlight, tileMap)
+      : false;
+    const near = dist < 115;
+    const close = dist < 70;
+    const discover = lit || near;
 
     ctx.save();
-    // Fuse box on floor
+    if (discover) {
+      const pulse = 0.38 + Math.sin(this._time * 2.2) * 0.08;
+      const glowAlpha = (lit ? 0.34 : 0.18) + (close ? 0.08 : 0);
+      const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, (close ? 34 : 24) * scale);
+      glow.addColorStop(0, this._hexToRgba(CONFIG.colors.objective, pulse * glowAlpha));
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(sx, sy, (close ? 34 : 24) * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Small electrical housing around the fuse so it reads as an object, not loot.
     ctx.fillStyle = CONFIG.colors.object;
-    ctx.fillRect(sx - 8 * scale, sy - 6 * scale, 16 * scale, 12 * scale);
-    ctx.strokeStyle = CONFIG.colors.objective;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(sx - 8 * scale, sy - 6 * scale, 16 * scale, 12 * scale);
-    ctx.fillStyle = CONFIG.colors.objective;
-    ctx.fillRect(sx - 5 * scale, sy - 3 * scale, 10 * scale, 4 * scale);
+    ctx.fillRect(sx - 13 * scale, sy - 10 * scale, 26 * scale, 20 * scale);
+    ctx.fillStyle = CONFIG.colors.metal;
+    ctx.globalAlpha = 0.75;
+    ctx.fillRect(sx - 10 * scale, sy - 7 * scale, 20 * scale, 14 * scale);
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = discover ? CONFIG.colors.objective : 'rgba(217,210,176,0.28)';
+    ctx.lineWidth = discover ? 1.6 : 1;
+    ctx.strokeRect(sx - 13 * scale, sy - 10 * scale, 26 * scale, 20 * scale);
+
+    // Fuse cartridge: glass center with metal caps.
+    ctx.fillStyle = discover ? CONFIG.colors.objective : '#8B8570';
+    ctx.globalAlpha = discover ? 0.86 : 0.45;
+    ctx.fillRect(sx - 8 * scale, sy - 2.5 * scale, 16 * scale, 5 * scale);
+    ctx.fillStyle = CONFIG.colors.metal;
+    ctx.fillRect(sx - 10 * scale, sy - 3 * scale, 3 * scale, 6 * scale);
+    ctx.fillRect(sx + 7 * scale, sy - 3 * scale, 3 * scale, 6 * scale);
+
+    if (lit || close) {
+      ctx.globalAlpha = lit ? 0.7 : 0.45;
+      ctx.strokeStyle = CONFIG.colors.flashlightCore;
+      ctx.beginPath();
+      ctx.moveTo(sx - 7 * scale, sy - 5 * scale);
+      ctx.lineTo(sx + 8 * scale, sy - 5 * scale);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  _renderGeneratorCue(ctx, room, player, tileMap, cameraX, cameraY, scale, viewW, viewH) {
+    const sx = (room.generator.x - cameraX) * scale + viewW / 2;
+    const sy = (room.generator.y - cameraY) * scale + viewH / 2;
+    const dist = player ? Math.hypot(player.x - room.generator.x, player.y - room.generator.y) : Infinity;
+    const lit = player?.flashlight
+      ? Visibility.isIlluminated(room.generator.x, room.generator.y, player.flashlight, tileMap)
+      : false;
+    const close = dist < 150;
+
+    ctx.save();
+    if (room.fuseCollected && !room.generatorActive) {
+      const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 34 * scale);
+      const alpha = (lit ? 0.34 : close ? 0.24 : 0.16) + Math.sin(this._time * 2) * 0.04;
+      glow.addColorStop(0, this._hexToRgba(CONFIG.colors.power, alpha));
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 34 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = room.generatorActive ? CONFIG.colors.exitGlow : CONFIG.colors.power;
+    ctx.globalAlpha = room.generatorActive ? 0.7 : room.fuseCollected ? (lit || close ? 0.72 : 0.42) : 0.2;
+    ctx.beginPath();
+    ctx.arc(sx + 10 * scale, sy - 10 * scale, 2.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 
@@ -622,8 +823,9 @@ export class Lighting {
 
     // Layered darkness — not flat black
     const grad = darkCtx.createRadialGradient(viewW / 2, viewH / 2, 0, viewW / 2, viewH / 2, Math.max(viewW, viewH) * 0.7);
-    grad.addColorStop(0, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha * 0.92})`);
-    grad.addColorStop(0.6, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha})`);
+    grad.addColorStop(0, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha * 0.98})`);
+    grad.addColorStop(0.42, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha})`);
+    grad.addColorStop(0.78, `rgba(0,0,0,${CONFIG.lighting.deepShadowOpacity * 0.98 || 0.965})`);
     grad.addColorStop(1, `rgba(0,0,0,${CONFIG.lighting.deepShadowOpacity || 0.95})`);
     darkCtx.fillStyle = grad;
     darkCtx.fillRect(0, 0, viewW, viewH);
@@ -631,13 +833,14 @@ export class Lighting {
     const px = (flashlight.x - cameraX) * scale + viewW / 2;
     const py = (flashlight.y - cameraY) * scale + viewH / 2;
 
-    // Subtle ambient around player — reduced
+    // Player ambient bubble — punch through darkness near the feet.
+    // Alpha scales with darknessOpacity so the hole stays visible at high darkness.
     const ambientR = CONFIG.lighting.ambientPlayerRadius * scale * boost;
     const ambientGrad = darkCtx.createRadialGradient(px, py, 0, px, py, ambientR);
     const amb = CONFIG.lighting.ambientStrength * boost;
-    ambientGrad.addColorStop(0, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha * (1 - amb * 2)})`);
-    ambientGrad.addColorStop(0.6, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha * (1 - amb * 0.5)})`);
-    ambientGrad.addColorStop(1, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha})`);
+    ambientGrad.addColorStop(0, `rgba(255,255,255,${darknessAlpha * (1 - amb * 2)})`);
+    ambientGrad.addColorStop(0.55, `rgba(255,255,255,${darknessAlpha * (1 - amb * 0.45)})`);
+    ambientGrad.addColorStop(1, `rgba(255,255,255,${darknessAlpha})`);
     darkCtx.globalCompositeOperation = 'destination-out';
     darkCtx.fillStyle = ambientGrad;
     darkCtx.beginPath();
@@ -684,30 +887,30 @@ export class Lighting {
         const focusedRange = CONFIG.flashlight.range * flicker * boost;
 
         this._drawLightConeWorld(lightCtx, worldX, worldY, angle, spillHalf, spillRange, [
-          { stop: 0, alpha: 0.5 },
-          { stop: 0.3, alpha: 0.25 },
-          { stop: 0.6, alpha: 0.1 },
+          { stop: 0, alpha: 0.42 },
+          { stop: 0.28, alpha: 0.22 },
+          { stop: 0.58, alpha: 0.08 },
           { stop: 1, alpha: 0 },
         ]);
 
         this._drawLightConeWorld(lightCtx, worldX, worldY, angle, CONFIG.flashlight.broadFov / 2, broadRange, [
-          { stop: 0, alpha: 0.92 },
-          { stop: 0.2, alpha: 0.75 },
-          { stop: 0.45, alpha: 0.4 },
-          { stop: 0.7, alpha: 0.15 },
+          { stop: 0, alpha: 1 },
+          { stop: 0.2, alpha: 0.9 },
+          { stop: 0.45, alpha: 0.56 },
+          { stop: 0.7, alpha: 0.22 },
           { stop: 1, alpha: 0 },
         ], true);
 
         this._drawLightConeWorld(lightCtx, worldX, worldY, angle, CONFIG.flashlight.focusedFov / 2, focusedRange, [
           { stop: 0, alpha: 1 },
-          { stop: 0.15, alpha: 0.9 },
-          { stop: 0.4, alpha: 0.5 },
-          { stop: 0.65, alpha: 0.15 },
+          { stop: 0.18, alpha: 1 },
+          { stop: 0.42, alpha: 0.72 },
+          { stop: 0.68, alpha: 0.26 },
           { stop: 1, alpha: 0 },
         ], true);
 
         if (!this.debugFlashlightSimple) {
-          const bloomR = focusedRange * 0.22;
+          const bloomR = focusedRange * 0.24;
           const bloom = lightCtx.createRadialGradient(worldX, worldY, 0, worldX, worldY, bloomR);
           bloom.addColorStop(0, `rgba(255,251,232,${CONFIG.flashlight.bloomStrength * flicker})`);
           bloom.addColorStop(1, 'rgba(255,251,232,0)');

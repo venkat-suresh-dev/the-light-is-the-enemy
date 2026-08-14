@@ -4,6 +4,7 @@ export class HUD {
     this.objectiveText = document.getElementById('hud-objective-text');
     this.objectiveHint = document.getElementById('hud-objective-hint');
     this.objectiveBadge = document.getElementById('hud-objective-badge');
+    this.interactionPrompt = document.getElementById('hud-interaction');
     this.staminaFill = document.getElementById('hud-stamina-fill');
     this.flashlightFill = document.getElementById('hud-flashlight-fill');
     this.roomTransition = document.getElementById('room-transition');
@@ -27,6 +28,17 @@ export class HUD {
     if (updated && this.objectiveBadge) {
       this.objectiveBadge.classList.add('visible');
       setTimeout(() => this.objectiveBadge.classList.remove('visible'), 2500);
+    }
+  }
+
+  updateInteractionPrompt(text = '') {
+    if (!this.interactionPrompt) return;
+    if (text) {
+      this.interactionPrompt.textContent = text;
+      this.interactionPrompt.classList.remove('hidden');
+    } else {
+      this.interactionPrompt.textContent = '';
+      this.interactionPrompt.classList.add('hidden');
     }
   }
 

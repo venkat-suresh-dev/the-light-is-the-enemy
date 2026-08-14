@@ -5,7 +5,9 @@ export class Room {
     this.tileMap = data.tileMap;
     this.spawn = data.spawn;
     this.exit = data.exit;
-    this.objective = data.objective;
+    this.fuse = data.fuse || data.objective;
+    this.generator = data.generator || data.spawn;
+    this.objective = this.fuse;
     this.enemySpawns = data.enemySpawns;
     this.decor = data.decor || [];
     this.landmarks = data.landmarks || [];
@@ -16,6 +18,8 @@ export class Room {
     this.themeLabel = data.themeLabel || '';
     this.roomNumber = data.roomNumber;
     this.exitUnlocked = false;
+    this.fuseCollected = false;
+    this.generatorActive = false;
   }
 
   unlockExit() {
@@ -30,8 +34,44 @@ export class Room {
   }
 
   isAtObjective(playerX, playerY, radius = 16) {
-    const dx = playerX - this.objective.x;
-    const dy = playerY - this.objective.y;
-    return dx * dx + dy * dy < (radius + 16) ** 2;
+    return this.isAtFuse(playerX, playerY, radius);
+  }
+
+  getFusePickupRadius(playerRadius = CONFIG.player.radius) {
+    return playerRadius + CONFIG.objective.fusePickupExtra;
+  }
+
+  getGeneratorPickupRadius(playerRadius = CONFIG.player.radius) {
+    return playerRadius + CONFIG.objective.generatorPickupExtra;
+  }
+
+  isAtFuse(playerX, playerY, radius = 16) {
+    if (this.fuseCollected || !this.fuse) return false;
+    const dx = playerX - this.fuse.x;
+    const dy = playerY - this.fuse.y;
+    const pickupRadius = this.getFusePickupRadius(radius);
+    return dx * dx + dy * dy < pickupRadius * pickupRadius;
+  }
+
+  isNearFuse(playerX, playerY, radius = 16) {
+    if (this.fuseCollected || !this.fuse) return false;
+    const dx = playerX - this.fuse.x;
+    const dy = playerY - this.fuse.y;
+    return dx * dx + dy * dy < (radius + 86) ** 2;
+  }
+
+  isAtGenerator(playerX, playerY, radius = 16) {
+    if (!this.generator || this.generatorActive) return false;
+    const dx = playerX - this.generator.x;
+    const dy = playerY - this.generator.y;
+    const pickupRadius = this.getGeneratorPickupRadius(radius);
+    return dx * dx + dy * dy < pickupRadius * pickupRadius;
+  }
+
+  isNearGenerator(playerX, playerY, radius = 16) {
+    if (!this.generator || this.generatorActive) return false;
+    const dx = playerX - this.generator.x;
+    const dy = playerY - this.generator.y;
+    return dx * dx + dy * dy < (radius + 120) ** 2;
   }
 }

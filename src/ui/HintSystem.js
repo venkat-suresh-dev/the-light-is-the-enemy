@@ -12,20 +12,27 @@ export class HintSystem {
     this._duration = 0;
     this._stuckTimer = 0;
     this._hintLevel = 0;
-    this._phase = 'find';
+    this._phase = 'findFuse';
     this._gameTime = 0;
+    this._phaseTime = 0;
   }
 
   reset() {
     this.shown.clear();
     this._stuckTimer = 0;
     this._hintLevel = 0;
-    this._phase = 'find';
+    this._phase = 'findFuse';
+    this._phaseTime = 0;
     this.hide();
   }
 
   update(deltaTime, player, objectivePhase, room) {
-    this._phase = objectivePhase;
+    if (objectivePhase !== this._phase) {
+      this._phase = objectivePhase;
+      this._phaseTime = 0;
+    } else {
+      this._phaseTime += deltaTime;
+    }
     this._gameTime += deltaTime;
 
     if (this._visible) {
@@ -49,10 +56,31 @@ export class HintSystem {
 
     if (player.flashlight.isOn) this.shown.add('flashlight');
 
-    if (objectivePhase === 'find' && !this.shown.has('objective_hint')) {
-      if (this._gameTime > 40) {
-        this.show('HINT', 'Search maintenance equipment and panels.', 4);
+    if (objectivePhase === 'findFuse' && !this.shown.has('objective_hint')) {
+      if (this._phaseTime > 35) {
+        this.show('HINT', 'Look for an electrical panel or fuse housing.', 4);
         this.shown.add('objective_hint');
+      }
+    }
+
+    if (objectivePhase === 'findFuse' && this.shown.has('objective_hint') && !this.shown.has('objective_hint_2')) {
+      if (this._phaseTime > 70) {
+        this.show('HINT', 'The fuse should be near maintenance equipment, not in an empty corner.', 5);
+        this.shown.add('objective_hint_2');
+      }
+    }
+
+    if (objectivePhase === 'findGenerator' && !this.shown.has('generator_hint')) {
+      if (this._phaseTime > 35) {
+        this.show('BACKUP POWER', 'Follow cables and electrical panels to the generator.', 4);
+        this.shown.add('generator_hint');
+      }
+    }
+
+    if (objectivePhase === 'findGenerator' && this.shown.has('generator_hint') && !this.shown.has('generator_hint_2')) {
+      if (this._phaseTime > 70) {
+        this.show('BACKUP POWER', 'Listen and look for the larger machine with the pulsing indicator.', 5);
+        this.shown.add('generator_hint_2');
       }
     }
   }

@@ -95,6 +95,7 @@ export class Input {
       flashlight: [],
       pause: ['Escape'],
       toggleFlashlight: ['KeyF'],
+      interact: ['KeyE'],
     };
 
     if (action === 'sprint' && this.touchSprint) return true;
@@ -117,6 +118,7 @@ export class Input {
       sprint: ['ShiftLeft', 'ShiftRight'],
       pause: ['Escape'],
       toggleFlashlight: ['KeyF'],
+      interact: ['KeyE'],
       flashlight: [],
     };
 
@@ -128,6 +130,9 @@ export class Input {
     }
     if (action === 'pause') {
       return map.pause.some((c) => this.keysPressed.has(c));
+    }
+    if (action === 'interact') {
+      return map.interact.some((c) => this.keysPressed.has(c));
     }
 
     const codes = map[action];
@@ -178,5 +183,12 @@ export class Input {
     this.keysReleased.clear();
     this.pointer.justPressed = false;
     this.pointer.justReleased = false;
+  }
+
+  /** Drop keys that may still be held after intro skip (before gameplay reads isPressed). */
+  flushIntroSkipKeys() {
+    for (const code of ['Escape', 'Enter', 'Space']) {
+      this.keysPressed.delete(code);
+    }
   }
 }

@@ -36,9 +36,9 @@ export class LocalLight {
       sx + irregular * radius, sy - irregular * radius * 0.5,
       0, sx, sy, radius
     );
-    grad.addColorStop(0, LocalLight.rgba(color, 0.12 * pulse));
-    grad.addColorStop(0.35, LocalLight.rgba(color, 0.06 * pulse));
-    grad.addColorStop(0.65, LocalLight.rgba(color, 0.02 * pulse));
+    grad.addColorStop(0, LocalLight.rgba(color, 0.075 * pulse));
+    grad.addColorStop(0.35, LocalLight.rgba(color, 0.035 * pulse));
+    grad.addColorStop(0.65, LocalLight.rgba(color, 0.012 * pulse));
     grad.addColorStop(1, 'rgba(0,0,0,0)');
 
     ctx.fillStyle = grad;
@@ -64,17 +64,17 @@ export class LocalLight {
       if (!los) occlusion = 0.35;
     }
 
-    const radius = light.radius * scale * pulse * occlusion;
+    const radius = light.radius * scale * pulse * occlusion * 0.82;
     const color = light.color || '#ffffff';
 
     darkCtx.save();
     darkCtx.globalCompositeOperation = 'destination-out';
 
     const grad = darkCtx.createRadialGradient(sx, sy, 0, sx, sy, radius);
-    grad.addColorStop(0, LocalLight.rgba(color, 0.55 * pulse * occlusion));
-    grad.addColorStop(0.25, LocalLight.rgba(color, 0.35 * pulse * occlusion));
-    grad.addColorStop(0.55, LocalLight.rgba(color, 0.12 * pulse * occlusion));
-    grad.addColorStop(0.8, LocalLight.rgba(color, 0.04 * pulse * occlusion));
+    grad.addColorStop(0, LocalLight.rgba(color, 0.32 * pulse * occlusion));
+    grad.addColorStop(0.25, LocalLight.rgba(color, 0.18 * pulse * occlusion));
+    grad.addColorStop(0.55, LocalLight.rgba(color, 0.07 * pulse * occlusion));
+    grad.addColorStop(0.8, LocalLight.rgba(color, 0.02 * pulse * occlusion));
     grad.addColorStop(1, 'rgba(255,255,255,0)');
 
     darkCtx.fillStyle = grad;

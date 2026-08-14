@@ -1,14 +1,16 @@
-import { CONFIG, ENEMY_STATE } from '../utils/Constants.js';
+import { CONFIG, ENEMY_STATE, ENEMY_ARCHETYPE } from '../utils/Constants.js';
 import { normalize, distance } from '../utils/MathUtils.js';
 import { Collision } from '../world/Collision.js';
 import { EnemyAI } from './EnemyAI.js';
 
 export class Enemy {
-  constructor(x, y, id = 0) {
+  constructor(x, y, id = 0, archetype = ENEMY_ARCHETYPE.STALKER) {
     this.id = id;
+    this.archetype = archetype;
+    const archetypeConfig = CONFIG.enemy.archetypes[archetype] || CONFIG.enemy.archetypes[ENEMY_ARCHETYPE.STALKER];
     this.x = x;
     this.y = y;
-    this.radius = CONFIG.enemy.radius;
+    this.radius = archetypeConfig.radius || CONFIG.enemy.radius;
     this.state = ENEMY_STATE.DORMANT;
     this.velocity = { x: 0, y: 0 };
     this.targetX = x;
@@ -29,6 +31,7 @@ export class Enemy {
     this.shadowGhost = 0;
     this.shadowGhostX = x;
     this.shadowGhostY = y;
+    this.facingAngle = -Math.PI / 2;
     this.ai = new EnemyAI(this);
   }
 
@@ -61,6 +64,9 @@ export class Enemy {
       const dir = normalize(moveTarget.x - this.x, moveTarget.y - this.y);
       this.velocity.x = dir.x * speed;
       this.velocity.y = dir.y * speed;
+      if (Math.abs(dir.x) + Math.abs(dir.y) > 0.001) {
+        this.facingAngle = Math.atan2(dir.y, dir.x);
+      }
 
       const dx = this.velocity.x * deltaTime;
       const dy = this.velocity.y * deltaTime;
@@ -82,7 +88,8 @@ export class Enemy {
     if (this.eyeFlash > 0) this.eyeFlash -= deltaTime;
 
     const distToPlayer = distance(this.x, this.y, player.x, player.y);
-    if (distToPlayer < CONFIG.enemy.attackRange && this.state === ENEMY_STATE.HUNTING) {
+    const attackRange = this.ai._cfg?.().attackRange || CONFIG.enemy.attackRange;
+    if (distToPlayer < attackRange && this.state === ENEMY_STATE.HUNTING) {
       return 'attack';
     }
     return null;
@@ -105,6 +112,6 @@ export class Enemy {
   }
 
   isDangerous() {
-    return this.state === ENEMY_STATE.HUNTING || this.state === ENEMY_STATE.ALERT;
+    return this.state === ENEMY_STATE.HUNTING || this.state === ENEMY_STATE.ALERT || this.state === ENEMY_STATE.AWARE;
   }
 }

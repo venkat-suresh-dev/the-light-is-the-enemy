@@ -1,5 +1,5 @@
 import { Enemy } from './Enemy.js';
-import { ENEMY_STATE } from '../utils/Constants.js';
+import { ENEMY_ARCHETYPE, ENEMY_STATE } from '../utils/Constants.js';
 import { Visibility } from '../world/Visibility.js';
 import { distance } from '../utils/MathUtils.js';
 
@@ -11,8 +11,14 @@ export class EnemyManager {
   }
 
   spawnEnemies(spawns, speedMultiplier = 1) {
+    const archetypeCycle = [
+      ENEMY_ARCHETYPE.STALKER,
+      ENEMY_ARCHETYPE.WATCHER,
+      ENEMY_ARCHETYPE.RUNNER,
+    ];
     this.enemies = spawns.map((pos, i) => {
-      const enemy = new Enemy(pos.x, pos.y, i);
+      const archetype = pos.archetype || archetypeCycle[i % archetypeCycle.length];
+      const enemy = new Enemy(pos.x, pos.y, i, archetype);
       enemy.speedMultiplier = speedMultiplier;
       return enemy;
     });

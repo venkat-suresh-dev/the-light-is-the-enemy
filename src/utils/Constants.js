@@ -27,12 +27,15 @@ export const CONFIG = {
   },
 
   lighting: {
+    // Scales darkness cutout via applyDarkness formula (not direct destination-out alpha)
     ambientStrength: 0.09,
-    ambientPlayerRadius: 70,
-    darknessOpacity: 0.9,
+    ambientPlayerRadius: 66,
+    // Warm floor spill drawn under the darkness overlay
+    ambientFloorSpill: 0.09,
+    darknessOpacity: 0.96,
     darknessColor: '3, 5, 8',
-    deepShadowOpacity: 0.95,
-    mobileBrightnessBoost: 1.08,
+    deepShadowOpacity: 0.985,
+    mobileBrightnessBoost: 1.02,
   },
 
   flashlight: {
@@ -59,7 +62,12 @@ export const CONFIG = {
     innerAngle: Math.PI / 5,
     warmColor: '#FFF4D6',
     warmCore: '#FFFBE8',
-    bloomStrength: 0.42,
+    bloomStrength: 0.58,
+  },
+
+  objective: {
+    fusePickupExtra: 55,
+    generatorPickupExtra: 60,
   },
 
   enemy: {
@@ -73,6 +81,71 @@ export const CONFIG = {
     lostTime: 3,
     attackRange: 18,
     attackTime: 0.3,
+    closeProximityRange: 58,
+    awarenessDecay: 0.38,
+    memoryTime: 1.5,
+    archetypes: {
+      STALKER: {
+        radius: 14,
+        proximityRange: 96,
+        losRange: 210,
+        sprintRange: 260,
+        awarenessGain: 0.75,
+        losGain: 0.68,
+        sprintGain: 0.75,
+        illuminationGain: 2.1,
+        awarenessThreshold: 0.34,
+        detectionTime: 0.55,
+        alertTime: 0.45,
+        chaseSpeed: 76,
+        huntSpeed: 62,
+        searchTime: 8.5,
+        lostTime: 4.2,
+        searchRadius: 76,
+        attackRange: 19,
+        stationary: false,
+      },
+      RUNNER: {
+        radius: 12,
+        proximityRange: 68,
+        losRange: 150,
+        sprintRange: 230,
+        awarenessGain: 0.44,
+        losGain: 0.38,
+        sprintGain: 0.9,
+        illuminationGain: 1.85,
+        awarenessThreshold: 0.5,
+        detectionTime: 0.68,
+        alertTime: 0.2,
+        chaseSpeed: 132,
+        huntSpeed: 94,
+        searchTime: 4.2,
+        lostTime: 2.4,
+        searchRadius: 58,
+        attackRange: 20,
+        stationary: false,
+      },
+      WATCHER: {
+        radius: 15,
+        proximityRange: 82,
+        losRange: 260,
+        sprintRange: 210,
+        awarenessGain: 0.62,
+        losGain: 0.86,
+        sprintGain: 0.4,
+        illuminationGain: 2.4,
+        awarenessThreshold: 0.32,
+        detectionTime: 0.95,
+        alertTime: 0.85,
+        chaseSpeed: 52,
+        huntSpeed: 36,
+        searchTime: 7,
+        lostTime: 5,
+        searchRadius: 42,
+        attackRange: 18,
+        stationary: true,
+      },
+    },
   },
 
   audio: {
@@ -133,6 +206,7 @@ export const CONFIG = {
     occludedScale: 0.68,
     stateWeights: {
       DORMANT: 0.5,
+      AWARE: 0.58,
       ILLUMINATED: 0.64,
       ALERT: 0.74,
       HUNTING: 1,
@@ -219,11 +293,18 @@ export const GAME_STATE = {
 
 export const ENEMY_STATE = {
   DORMANT: 'DORMANT',
+  AWARE: 'AWARE',
   ILLUMINATED: 'ILLUMINATED',
   ALERT: 'ALERT',
   HUNTING: 'HUNTING',
   SEARCHING: 'SEARCHING',
   LOST: 'LOST',
+};
+
+export const ENEMY_ARCHETYPE = {
+  STALKER: 'STALKER',
+  RUNNER: 'RUNNER',
+  WATCHER: 'WATCHER',
 };
 
 export const OBJECTIVE_TYPE = {

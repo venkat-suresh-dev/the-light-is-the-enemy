@@ -19,7 +19,21 @@ export class Menu {
     this.btnMainMenu = document.getElementById('btn-main-menu');
 
     this._callbacks = {};
+    this._introActive = false;
+    this._ready = false;
     this._bindSettings();
+  }
+
+  setReady(ready) {
+    this._ready = ready;
+    if (this.btnPlay) {
+      this.btnPlay.disabled = !ready;
+      this.btnPlay.style.opacity = ready ? '1' : '0.5';
+    }
+  }
+
+  get introActive() {
+    return this._introActive;
   }
 
   on(event, callback) {
@@ -85,9 +99,7 @@ export class Menu {
     setEffects.addEventListener('click', () => toggle(setEffects));
 
     this.btnPlay.addEventListener('click', () => {
-      if (this.btnPlay.disabled) return;
-      const result = this._callbacks.play?.();
-      if (result?.catch) result.catch((err) => console.error('Play failed:', err));
+      this._handlePlayClick();
     });
     this.btnSettings.addEventListener('click', () => this.showSettings());
     this.btnCredits.addEventListener('click', () => this.showCredits());
@@ -138,7 +150,30 @@ export class Menu {
     this.btnPlay.style.opacity = enabled ? '1' : '0.5';
   }
 
+  async _handlePlayClick() {
+    if (!this.btnPlay || this.btnPlay.disabled) return;
+    if (!this._ready) {
+      console.warn('[menu] PLAY ignored — game still initializing');
+      return;
+    }
+    const play = this._callbacks.play;
+    if (!play) {
+      console.error('[menu] PLAY has no handler — was Game._bindMenu() called?');
+      return;
+    }
+
+    this.setPlayEnabled(false);
+    try {
+      await play();
+    } catch (err) {
+      console.error('[menu] PLAY failed:', err);
+    } finally {
+      this.setPlayEnabled(true);
+    }
+  }
+
   async playIntro() {
+    this._introActive = true;
     this.hideAll();
     this.introScreen.classList.remove('hidden');
 
@@ -174,6 +209,7 @@ export class Menu {
       this.introScreen.removeEventListener('click', skip);
       window.removeEventListener('keydown', onKey);
       this.introScreen.classList.add('hidden');
+      this._introActive = false;
     }
   }
 
