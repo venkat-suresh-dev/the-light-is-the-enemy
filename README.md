@@ -1,5 +1,9 @@
 # The Light Is the Enemy
 
+<p align="center">
+  <img src="assets/banner.png" alt="The Light Is the Enemy — a lone figure surrounded by darkness, illuminated by a flashlight">
+</p>
+
 > A top-down survival horror game where darkness isn't just atmosphere — it's part of the threat.
 
 Explore procedurally built rooms in near-total darkness. Your flashlight reveals the world, draws attention, and drains power. Enemies watch, listen, and hunt. Restore backup power, then escape — if you can.
