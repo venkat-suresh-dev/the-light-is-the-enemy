@@ -132,9 +132,10 @@ export class Lighting {
 
     ctx.save();
     const grad = ctx.createRadialGradient(px, py, 0, px, py, r);
-    grad.addColorStop(0, `rgba(255, 244, 214, ${spill})`);
-    grad.addColorStop(0.45, `rgba(255, 244, 214, ${spill * 0.42})`);
-    grad.addColorStop(0.75, `rgba(255, 244, 214, ${spill * 0.12})`);
+    // The player never stands on pure black, but this must not become a second flashlight.
+    grad.addColorStop(0, `rgba(255, 239, 202, ${spill})`);
+    grad.addColorStop(0.34, `rgba(220, 231, 235, ${spill * 0.34})`);
+    grad.addColorStop(0.7, `rgba(150, 177, 190, ${spill * 0.08})`);
     grad.addColorStop(1, 'rgba(255, 244, 214, 0)');
     ctx.fillStyle = grad;
     ctx.beginPath();
@@ -161,6 +162,22 @@ export class Lighting {
         const alt = (tx + ty) % 2 === 0;
         ctx.fillStyle = alt ? CONFIG.colors.floor : CONFIG.colors.floorAlt;
         ctx.fillRect(sx, sy, ss + 1, ss + 1);
+
+        // Low-frequency traffic grime and shallow water only appear as detail inside existing light.
+        if (hash < 15) {
+          ctx.fillStyle = hash < 5 ? 'rgba(0,0,0,0.13)' : 'rgba(69,83,88,0.07)';
+          ctx.beginPath();
+          ctx.ellipse(sx + ss * 0.54, sy + ss * 0.61, ss * 0.38, ss * 0.12, (hash - 7) * 0.18, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (hash === 11) {
+          ctx.strokeStyle = 'rgba(165,184,188,0.075)';
+          ctx.lineWidth = Math.max(0.7, scale * 0.55);
+          ctx.beginPath();
+          ctx.moveTo(sx + ss * 0.18, sy + ss * 0.72);
+          ctx.bezierCurveTo(sx + ss * 0.4, sy + ss * 0.52, sx + ss * 0.62, sy + ss * 0.88, sx + ss * 0.86, sy + ss * 0.58);
+          ctx.stroke();
+        }
 
         // Material seams are intentionally sparse so the room reads as a facility, not a board.
         if ((isMetal && tx % 4 === 0) || (isTile && (tx % 2 === 0 || ty % 2 === 0))) {
@@ -230,6 +247,12 @@ export class Lighting {
         if (hash < 18) {
           ctx.fillStyle = 'rgba(114,75,49,0.10)';
           ctx.fillRect(sx + ss * 0.68, sy + ss * 0.22, Math.max(1, ss * 0.09), ss * 0.52);
+        }
+        if (hash % 9 === 0) {
+          ctx.fillStyle = 'rgba(194,204,199,0.035)';
+          ctx.fillRect(sx + ss * 0.18, sy + ss * 0.25, ss * 0.44, Math.max(1, ss * 0.06));
+          ctx.fillStyle = 'rgba(0,0,0,0.12)';
+          ctx.fillRect(sx + ss * 0.12, sy + ss * 0.78, ss * 0.72, Math.max(1, ss * 0.08));
         }
 
         // Occasional crack / water damage, deterministic per wall tile.
@@ -371,6 +394,7 @@ export class Lighting {
       const sx = (d.x - cameraX) * scale + viewW / 2;
       const sy = (d.y - cameraY) * scale + viewH / 2;
       const s = 10 * d.scale * scale;
+      const detail = Math.abs(Math.floor(d.x * 13 + d.y * 17)) % 11;
 
       // Shadow
       ctx.save();
@@ -390,15 +414,18 @@ export class Lighting {
       switch (d.type) {
         case 'crate':
         case 'box':
+          ctx.fillStyle = '#3A3028';
           ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
           ctx.strokeRect(-s * 0.5, -s * 0.5, s, s);
-          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+          ctx.strokeStyle = 'rgba(202,178,139,0.15)';
           ctx.beginPath();
           ctx.moveTo(-s * 0.5, -s * 0.5);
           ctx.lineTo(s * 0.5, s * 0.5);
           ctx.moveTo(s * 0.5, -s * 0.5);
           ctx.lineTo(-s * 0.5, s * 0.5);
           ctx.stroke();
+          ctx.fillStyle = 'rgba(45,27,19,0.28)';
+          ctx.fillRect(-s * 0.48, s * 0.2, s * 0.96, s * 0.18);
           break;
         case 'table':
         case 'desk':
@@ -431,10 +458,14 @@ export class Lighting {
           ctx.stroke();
           break;
         case 'pipe':
-          ctx.fillStyle = CONFIG.colors.metal;
+          ctx.fillStyle = '#273037';
           ctx.fillRect(-s * 1.2, -s * 0.18, s * 2.4, s * 0.36);
-          ctx.fillStyle = CONFIG.colors.objectHighlight;
+          ctx.fillStyle = 'rgba(190,205,203,0.18)';
           ctx.fillRect(-s * 1.2, -s * 0.18, s * 2.4, s * 0.08);
+          if (detail < 4) {
+            ctx.fillStyle = 'rgba(125,70,41,0.38)';
+            ctx.fillRect(-s * 0.15, -s * 0.2, s * 0.22, s * 0.4);
+          }
           break;
         case 'generator':
           ctx.fillStyle = CONFIG.colors.metal;
@@ -451,9 +482,11 @@ export class Lighting {
           break;
         case 'electrical_panel':
         case 'maintenance_panel':
-          ctx.fillStyle = CONFIG.colors.metal;
+          ctx.fillStyle = '#252E34';
           ctx.fillRect(-s * 0.55, -s * 0.75, s * 1.1, s * 1.5);
           ctx.strokeRect(-s * 0.55, -s * 0.75, s * 1.1, s * 1.5);
+          ctx.fillStyle = 'rgba(0,0,0,0.22)';
+          ctx.fillRect(-s * 0.47, s * 0.36, s * 0.94, s * 0.22);
           ctx.fillStyle = CONFIG.colors.power;
           ctx.globalAlpha = 0.45;
           ctx.fillRect(-s * 0.35, -s * 0.55, s * 0.7, s * 0.16);
@@ -464,11 +497,13 @@ export class Lighting {
           }
           break;
         case 'machinery':
-          ctx.fillStyle = CONFIG.colors.metal;
+          ctx.fillStyle = '#283238';
           ctx.fillRect(-s * 0.7, -s * 0.6, s * 1.4, s * 1.2);
           ctx.fillStyle = CONFIG.colors.objectHighlight;
           ctx.fillRect(-s * 0.5, -s * 0.4, s * 0.3, s * 0.6);
           ctx.fillRect(s * 0.2, -s * 0.4, s * 0.3, s * 0.6);
+          ctx.fillStyle = 'rgba(106,61,38,0.28)';
+          ctx.fillRect(-s * 0.66, s * 0.32, s * 1.32, s * 0.18);
           break;
         case 'cabinet':
           ctx.fillRect(-s * 0.5, -s * 0.7, s, s * 1.4);
@@ -489,7 +524,7 @@ export class Lighting {
         case 'cable':
         case 'wire':
         case 'conduit_floor':
-          ctx.strokeStyle = CONFIG.colors.metal;
+          ctx.strokeStyle = d.type === 'wire' ? '#15191C' : '#303A40';
           ctx.lineWidth = d.type === 'conduit_floor' ? 3 : 2;
           ctx.beginPath();
           if (d.type === 'conduit_floor') {
@@ -527,10 +562,16 @@ export class Lighting {
           ctx.fillRect(-s * 0.2, -s * 0.25, s * 0.4, s * 0.5);
           break;
         case 'stain':
-          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          ctx.fillStyle = detail < 4 ? 'rgba(51,70,73,0.20)' : 'rgba(0,0,0,0.25)';
           ctx.beginPath();
           ctx.ellipse(0, 0, s * 0.5, s * 0.35, 0, 0, Math.PI * 2);
           ctx.fill();
+          if (detail < 4) {
+            ctx.strokeStyle = 'rgba(184,203,202,0.10)';
+            ctx.beginPath();
+            ctx.ellipse(-s * 0.08, -s * 0.05, s * 0.28, s * 0.11, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
           break;
         case 'debris':
         case 'toolbox':
@@ -833,8 +874,9 @@ export class Lighting {
 
     // Layered darkness — not flat black
     const grad = darkCtx.createRadialGradient(viewW / 2, viewH / 2, 0, viewW / 2, viewH / 2, Math.max(viewW, viewH) * 0.7);
-    grad.addColorStop(0, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha * 0.98})`);
-    grad.addColorStop(0.42, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha})`);
+    grad.addColorStop(0, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha * 0.97})`);
+    grad.addColorStop(0.35, `rgba(4, 8, 12, ${darknessAlpha})`);
+    grad.addColorStop(0.58, `rgba(${CONFIG.lighting.darknessColor}, ${darknessAlpha})`);
     grad.addColorStop(0.78, `rgba(0,0,0,${CONFIG.lighting.deepShadowOpacity * 0.98 || 0.965})`);
     grad.addColorStop(1, `rgba(0,0,0,${CONFIG.lighting.deepShadowOpacity || 0.95})`);
     darkCtx.fillStyle = grad;
