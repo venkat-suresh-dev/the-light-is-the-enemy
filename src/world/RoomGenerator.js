@@ -439,11 +439,12 @@ export class RoomGenerator {
         if (tiles[y * width + x] !== TILE.FLOOR) continue;
         if (protectedTiles.has(`${x},${y}`)) continue;
         if (rng.bool(themeMeta.decorDensity * 0.45)) {
+          const type = rng.pick(types);
           decor.push({
             x: x * CONFIG.world.tileSize + CONFIG.world.tileSize / 2,
             y: y * CONFIG.world.tileSize + CONFIG.world.tileSize / 2,
-            type: rng.pick(types),
-            rotation: rng.range(0, Math.PI * 2),
+            type,
+            rotation: this._decorRotation(type, rng),
             scale: rng.range(0.85, 1.25),
           });
         }
@@ -579,17 +580,31 @@ export class RoomGenerator {
         if (tx < 3 || ty < 3 || tx >= width - 3 || ty >= height - 3) continue;
         if (tiles[ty * width + tx] !== TILE.FLOOR) continue;
         if (protectedTiles.has(`${tx},${ty}`)) continue;
+        const type = rng.pick(cluster.types);
         decor.push({
           x: tx * CONFIG.world.tileSize + CONFIG.world.tileSize / 2 + rng.range(-6, 6),
           y: ty * CONFIG.world.tileSize + CONFIG.world.tileSize / 2 + rng.range(-6, 6),
-          type: rng.pick(cluster.types),
-          rotation: rng.range(0, Math.PI * 2),
+          type,
+          rotation: this._decorRotation(type, rng),
           scale: rng.range(0.75, 1.25),
         });
       }
     }
 
     this._placeCableBreadcrumb(decor, tiles, width, height, rng, fuse, generator, protectedTiles);
+  }
+
+  _decorRotation(type, rng) {
+    // Built infrastructure is installed square to the room.  Keeping these
+    // elements on the grid prevents a random collection of props from reading
+    // as a radial pattern in low light; loose debris can remain irregular.
+    const installed = new Set([
+      'pipe', 'vent', 'warning_stripe', 'shelf', 'table', 'desk',
+      'electrical_panel', 'maintenance_panel', 'fusebox', 'generator',
+      'machinery', 'cabinet', 'conduit_floor',
+    ]);
+    if (installed.has(type)) return rng.pick([0, Math.PI / 2, Math.PI, Math.PI * 1.5]);
+    return rng.range(0, Math.PI * 2);
   }
 
   _placeCableBreadcrumb(decor, tiles, width, height, rng, fuse, generator, protectedTiles) {
