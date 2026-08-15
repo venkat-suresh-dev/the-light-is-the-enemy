@@ -567,12 +567,9 @@ export class RoomGenerator {
       const cx = rng.int(4, width - 5);
       const cy = rng.int(4, height - 5);
       if (tiles[cy * width + cx] !== TILE.FLOOR) continue;
-      const palette = rng.pick([
-        ['crate', 'box', 'barrel', 'debris', 'stain'],
-        ['pipe', 'vent', 'cable', 'maintenance_panel', 'damaged_floor'],
-        ['desk', 'chair', 'paper', 'cabinet', 'broken'],
-      ]);
-      clusters.push({ center: { x: cx, y: cy }, types: palette, radius: rng.int(2, 4), count: rng.int(7, 12) });
+      // Composition is selected once per room theme: visual relationships beat random scatter.
+      const palette = themeMeta.composition || themeMeta.decorTypes;
+      clusters.push({ center: { x: cx, y: cy }, types: palette, radius: rng.int(2, 4), count: rng.int(6, 10) });
     }
 
     for (const cluster of clusters) {

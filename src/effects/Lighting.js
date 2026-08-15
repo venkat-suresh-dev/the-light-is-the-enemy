@@ -155,30 +155,31 @@ export class Lighting {
         const sy = (wy - cameraY) * scale + viewH / 2;
         const ss = tileSize * scale;
 
+        const hash = Math.abs((tx * 73 + ty * 137) % 100);
+        const isMetal = theme === 'INDUSTRIAL' || theme === 'GENERATOR';
+        const isTile = theme === 'OFFICE' || theme === 'LAB';
         const alt = (tx + ty) % 2 === 0;
         ctx.fillStyle = alt ? CONFIG.colors.floor : CONFIG.colors.floorAlt;
         ctx.fillRect(sx, sy, ss + 1, ss + 1);
 
-        // Tile grid lines
-        ctx.strokeStyle = CONFIG.colors.floorLine;
-        ctx.globalAlpha = 0.25;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(sx + 0.5, sy + 0.5, ss, ss);
-        ctx.globalAlpha = 1;
-
-        // Deterministic floor detail (no Math.random per frame)
-        const hash = (tx * 73 + ty * 137) % 100;
-        if (hash < 8) {
-          ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        // Material seams are intentionally sparse so the room reads as a facility, not a board.
+        if ((isMetal && tx % 4 === 0) || (isTile && (tx % 2 === 0 || ty % 2 === 0))) {
+          ctx.strokeStyle = isMetal ? 'rgba(150,165,171,0.12)' : 'rgba(126,139,147,0.10)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (isMetal) { ctx.moveTo(sx, sy + ss * 0.18); ctx.lineTo(sx + ss, sy + ss * 0.18); }
+          else { ctx.moveTo(sx, sy + ss); ctx.lineTo(sx + ss, sy + ss); }
+          ctx.stroke();
+        }
+        if (hash < 7) {
+          ctx.strokeStyle = 'rgba(210,220,218,0.035)';
           ctx.beginPath();
           ctx.moveTo(sx + ss * 0.15, sy + ss * 0.4);
           ctx.lineTo(sx + ss * 0.85, sy + ss * 0.55);
           ctx.stroke();
         }
-
-        // Directional arrow markings occasionally
         if (hash === 3 && tx % 5 === 0) {
-          ctx.fillStyle = 'rgba(255,255,255,0.04)';
+          ctx.fillStyle = 'rgba(217,164,65,0.055)';
           const cx = sx + ss / 2;
           const cy = sy + ss / 2;
           ctx.beginPath();
@@ -207,7 +208,7 @@ export class Lighting {
         ctx.fillStyle = CONFIG.colors.wallInner;
         ctx.fillRect(sx, sy, ss + 1, ss + 1);
 
-        // Main wall face
+        // Recessed concrete/metal face with a service-course seam.
         ctx.fillStyle = CONFIG.colors.wall;
         ctx.fillRect(sx + 1, sy + 1, ss - 1, ss - 1);
 
@@ -221,8 +222,17 @@ export class Lighting {
         ctx.fillRect(sx, sy, 2 * scale, ss + 1);
         ctx.globalAlpha = 1;
 
-        // Occasional crack
-        const hash = (tx * 47 + ty * 83) % 100;
+        const hash = Math.abs((tx * 47 + ty * 83) % 100);
+        if (tx % 3 === 0) {
+          ctx.fillStyle = 'rgba(0,0,0,0.16)';
+          ctx.fillRect(sx + ss * 0.16, sy + ss * 0.62, ss * 0.68, Math.max(1, scale));
+        }
+        if (hash < 18) {
+          ctx.fillStyle = 'rgba(114,75,49,0.10)';
+          ctx.fillRect(sx + ss * 0.68, sy + ss * 0.22, Math.max(1, ss * 0.09), ss * 0.52);
+        }
+
+        // Occasional crack / water damage, deterministic per wall tile.
         if (hash < 6) {
           ctx.strokeStyle = 'rgba(0,0,0,0.3)';
           ctx.lineWidth = 1;

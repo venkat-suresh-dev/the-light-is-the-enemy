@@ -25,6 +25,7 @@ export const THEME_META = {
     decorDensity: 0.07,
     floorMaterial: 'concrete',
     accentColor: '#C94B4B',
+    composition: ['pipe', 'maintenance_panel', 'fusebox', 'cable', 'toolbox', 'stain'],
   },
   [ROOM_THEME.STORAGE]: {
     label: 'STORAGE AREA',
@@ -32,6 +33,7 @@ export const THEME_META = {
     decorDensity: 0.09,
     floorMaterial: 'concrete',
     accentColor: '#8B9199',
+    composition: ['crate', 'shelf', 'barrel', 'box', 'debris', 'stain'],
   },
   [ROOM_THEME.OFFICE]: {
     label: 'OFFICE BLOCK',
@@ -39,6 +41,7 @@ export const THEME_META = {
     decorDensity: 0.06,
     floorMaterial: 'tile',
     accentColor: '#6A8FBF',
+    composition: ['desk', 'chair', 'cabinet', 'monitor', 'paper', 'broken'],
   },
   [ROOM_THEME.INDUSTRIAL]: {
     label: 'INDUSTRIAL ZONE',
@@ -46,6 +49,7 @@ export const THEME_META = {
     decorDensity: 0.07,
     floorMaterial: 'metal',
     accentColor: '#D9A441',
+    composition: ['machinery', 'pipe', 'maintenance_panel', 'cable', 'barrel', 'debris'],
   },
   [ROOM_THEME.TUNNEL]: {
     label: 'SERVICE TUNNEL',
@@ -53,6 +57,7 @@ export const THEME_META = {
     decorDensity: 0.05,
     floorMaterial: 'concrete',
     accentColor: '#8B9199',
+    composition: ['pipe', 'vent', 'conduit_floor', 'wire', 'damaged_floor', 'stain'],
   },
   [ROOM_THEME.GENERATOR]: {
     label: 'GENERATOR ROOM',
@@ -60,6 +65,7 @@ export const THEME_META = {
     decorDensity: 0.08,
     floorMaterial: 'metal',
     accentColor: '#D9A441',
+    composition: ['generator', 'pipe', 'maintenance_panel', 'cable', 'toolbox', 'warning_stripe'],
   },
   [ROOM_THEME.LAB]: {
     label: 'RESEARCH LAB',
@@ -67,6 +73,7 @@ export const THEME_META = {
     decorDensity: 0.06,
     floorMaterial: 'tile',
     accentColor: '#6A9FBF',
+    composition: ['cabinet', 'monitor', 'desk', 'wire', 'paper', 'stain'],
   },
 };
 
